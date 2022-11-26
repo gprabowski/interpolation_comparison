@@ -26,8 +26,11 @@ struct last_frame_info {
   static unsigned int width;
   static unsigned int height;
 
-  static math::vec2 viewport_area;
-  static math::vec2 viewport_pos;
+  static math::vec2 left_viewport_area;
+  static math::vec2 left_viewport_pos;
+
+  static math::vec2 right_viewport_area;
+  static math::vec2 right_viewport_pos;
 
   static float last_frame_time;
   static uint64_t begin_time;

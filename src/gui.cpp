@@ -11,13 +11,7 @@
 
 #include <ImGuiFileDialog.h>
 
-#include <milling_program.hpp>
-
 #include <chrono>
-
-#include <heightmap.hpp>
-
-#include <stamping.hpp>
 
 namespace pusn {
 namespace gui {
@@ -191,22 +185,49 @@ void start_frame() {
 
 void update_viewport_info(std::function<void(void)> process_input) {
   // update viewport static info
-  ImGui::Begin("Viewport");
+  ImGui::Begin("Euler Angles Interpolation");
 
-  const auto min = ImGui::GetWindowContentRegionMin();
-  const auto max = ImGui::GetWindowContentRegionMax();
+  auto min = ImGui::GetWindowContentRegionMin();
+  auto max = ImGui::GetWindowContentRegionMax();
 
-  chosen_api::last_frame_info::viewport_area = {max.x - min.x, max.y - min.y};
+  chosen_api::last_frame_info::left_viewport_area = {max.x - min.x,
+                                                     max.y - min.y};
 
   auto tmp = ImGui::GetWindowPos();
-  chosen_api::last_frame_info::viewport_pos = {tmp.x, tmp.y};
-  chosen_api::last_frame_info::viewport_pos = {tmp.x + min.x, tmp.y + min.y};
+  chosen_api::last_frame_info::left_viewport_pos = {tmp.x, tmp.y};
+  chosen_api::last_frame_info::left_viewport_pos = {tmp.x + min.x,
+                                                    tmp.y + min.y};
 
-  const ImVec2 cp = {chosen_api::last_frame_info::viewport_pos.x,
-                     chosen_api::last_frame_info::viewport_pos.y};
+  ImVec2 cp = {chosen_api::last_frame_info::left_viewport_pos.x,
+               chosen_api::last_frame_info::left_viewport_pos.y};
 
-  const ImVec2 ca = {chosen_api::last_frame_info::viewport_area.x,
-                     chosen_api::last_frame_info::viewport_area.y};
+  ImVec2 ca = {chosen_api::last_frame_info::left_viewport_area.x,
+               chosen_api::last_frame_info::left_viewport_area.y};
+
+  if (ImGui::IsMouseHoveringRect(cp, {cp.x + ca.x, cp.y + ca.y})) {
+    process_input();
+  }
+
+  ImGui::End();
+
+  ImGui::Begin("Quaternion Interpolation");
+
+  min = ImGui::GetWindowContentRegionMin();
+  max = ImGui::GetWindowContentRegionMax();
+
+  chosen_api::last_frame_info::right_viewport_area = {max.x - min.x,
+                                                      max.y - min.y};
+
+  tmp = ImGui::GetWindowPos();
+  chosen_api::last_frame_info::right_viewport_pos = {tmp.x, tmp.y};
+  chosen_api::last_frame_info::right_viewport_pos = {tmp.x + min.x,
+                                                     tmp.y + min.y};
+
+  cp = {chosen_api::last_frame_info::right_viewport_pos.x,
+        chosen_api::last_frame_info::right_viewport_pos.y};
+
+  ca = {chosen_api::last_frame_info::right_viewport_area.x,
+        chosen_api::last_frame_info::right_viewport_area.y};
 
   if (ImGui::IsMouseHoveringRect(cp, {cp.x + ca.x, cp.y + ca.y})) {
     process_input();
@@ -233,188 +254,98 @@ void render_light_gui(internal::light &light) {
   ImGui::End();
 }
 
-void render_tool_gui(heightmap &model, internal::milling_tool &tool,
-                     std::optional<milling_program> &program) {
-  ImGui::Begin("Tool Settings");
-  ImGui::DragFloat3("Position", glm::value_ptr(tool.placement.position), -100.f,
-                    100.f);
-  if (ImGui::DragFloat("Height", &tool.height, 1.f, 100.f)) {
-    tool.reset();
+void render_simulation_gui(internal::model &model) {
+  ImGui::Begin("Simulation Settings");
+  ImGui::DragFloat("Length", &model.next_settings.length, 1.f, 20.f);
+
+  ImGui::DragFloat3("Position Start",
+                    glm::value_ptr(model.next_settings.position_start), -1000,
+                    1000);
+  ImGui::DragFloat3("Position End",
+                    glm::value_ptr(model.next_settings.position_end), -1000,
+                    1000);
+
+  ImGui::DragFloat4("Quaternion Start",
+                    glm::value_ptr(model.next_settings.quat_rotation_start),
+                    -100.f, 100.f);
+
+  ImGui::DragFloat4("Quaternion End",
+                    glm::value_ptr(model.next_settings.quat_rotation_end),
+                    -100.f, 100.f);
+
+  ImGui::DragFloat3("Euler Angles Start",
+                    glm::value_ptr(model.next_settings.euler_rotation_start),
+                    -2 * glm::pi<float>(), 2 * glm::pi<float>());
+
+  ImGui::DragFloat3("Euler Angles End",
+                    glm::value_ptr(model.next_settings.euler_rotation_end),
+                    -2 * glm::pi<float>(), 2 * glm::pi<float>());
+
+  ImGui::Checkbox("SLERP", &model.next_settings.slerp);
+  ImGui::Checkbox("Animate", &model.next_settings.animation);
+
+  if (!model.next_settings.animation) {
+    ImGui::DragInt("Frames", &model.next_settings.frames);
   }
 
-  if (ImGui::DragFloat("Cutting length", &tool.cutting_length, 1.f, 100.f)) {
-    tool.reset();
-  }
+  if (ImGui::Button("Run")) {
+    if (!model.current_settings.has_value()) {
+      model.next_settings.start_time = std::chrono::system_clock::now();
+      // normalize quaternions
+      model.next_settings.quat_rotation_start =
+          glm::normalize(model.next_settings.quat_rotation_start);
+      model.next_settings.quat_rotation_end =
+          glm::normalize(model.next_settings.quat_rotation_end);
 
-  if (ImGui::DragFloat("Radius", &tool.radius, 1.f, 100.f)) {
-    tool.reset();
-  }
+      model.current_settings = model.next_settings;
 
-  int tmp_x =
-      static_cast<int>(tool.placement.position.x) * model.pixels_per_unit +
-      model.cpu_texture.width / 2;
-  int tmp_y =
-      static_cast<int>(tool.placement.position.z) * model.pixels_per_unit +
-      model.cpu_texture.height / 2;
-  ImGui::Text("Texture position:  \n X: %d Y: %d\n", tmp_x, tmp_y);
+      model.left_placements.clear();
+      model.right_placements.clear();
 
-  if (tool.stamp.stamp_values.size()) {
-    if (ImGui::Button("Stamp Here")) {
-      stamp_here(tmp_x, tmp_y, model.cpu_texture.width,
-                 model.cpu_texture.height, model.cpu_texture.pixels, tool,
-                 program.value().tool_type, {0, 0, 0}, {0, 1, 0});
+      if (!model.current_settings.value().animation) {
+        for (int i = 0; i < model.current_settings.value().frames; ++i) {
+          float progress = static_cast<float>(i) /
+                           (model.current_settings.value().frames - 1);
+          // left (quaternion)
+          scene_object_info curr;
+          curr.position =
+              (1 - progress) * model.current_settings.value().position_start +
+              progress * model.current_settings.value().position_end;
 
-      glfw_impl::fill_texture<float>(model.gpu_texture, model.cpu_texture.width,
-                                     model.cpu_texture.height,
-                                     model.cpu_texture.pixels.data());
-    }
-  }
-  ImGui::End();
-}
+          if (model.current_settings.value().slerp) {
+            curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(
+                glm::slerp(model.current_settings.value().quat_rotation_start,
+                           model.current_settings.value().quat_rotation_end,
+                           progress))));
+          } else {
+            curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(
+                glm::lerp(model.current_settings.value().quat_rotation_start,
+                          model.current_settings.value().quat_rotation_end,
+                          progress))));
+          }
 
-void render_model_gui(heightmap &model) {
-  ImGui::Begin("Model settings");
-  ImGui::DragFloat3("Position", glm::value_ptr(model.placement.position),
-                    -10000.f, 10000.f);
+          model.left_placements.push_back(curr);
 
-  int tmp_size[2]{model.mesh_size.x, model.mesh_size.y};
-  if (ImGui::DragInt2("Model size", tmp_size, 1, 1000)) {
-    model.mesh_size = {tmp_size[0], tmp_size[1]};
-    model.regenerate_mesh();
+          // right (euler angles)
+          curr.rotation = glm::degrees(glm::mix(
+              model.current_settings.value().euler_rotation_start,
+              model.current_settings.value().euler_rotation_end, progress));
 
-    model.cpu_texture.resize(model.pixels_per_unit * model.mesh_size.x,
-                             model.pixels_per_unit * model.mesh_size.y);
-
-    model.cpu_texture.reset(model.depth);
-    glfw_impl::fill_texture<float>(model.gpu_texture, model.cpu_texture.width,
-                                   model.cpu_texture.height,
-                                   model.cpu_texture.pixels.data());
-  }
-
-  int tmp_detail[2]{model.mesh_detail.x, model.mesh_detail.y};
-  if (ImGui::DragInt2("Mesh detail", tmp_detail, 1, 10)) {
-    model.mesh_detail = {tmp_detail[0], tmp_detail[1]};
-    model.regenerate_mesh();
-  }
-
-  if (ImGui::DragInt("Texels per unit", &model.pixels_per_unit, 5, 30)) {
-    if (model.pixels_per_unit < 1)
-      model.pixels_per_unit = 1;
-
-    model.cpu_texture.resize(model.pixels_per_unit * model.mesh_size.x,
-                             model.pixels_per_unit * model.mesh_size.y);
-
-    model.cpu_texture.reset(model.depth);
-    glfw_impl::fill_texture<float>(model.gpu_texture, model.cpu_texture.width,
-                                   model.cpu_texture.height,
-                                   model.cpu_texture.pixels.data());
-  }
-
-  if (ImGui::DragFloat("Depth", &model.depth, 1.f, 100.f)) {
-    model.cpu_texture.reset(model.depth);
-    glfw_impl::fill_texture<float>(model.gpu_texture, model.cpu_texture.width,
-                                   model.cpu_texture.height,
-                                   model.cpu_texture.pixels.data());
-  }
-
-  ImGui::End();
-}
-
-void render_program_gui(internal::simulation_settings &settings,
-                        milling_program &program, internal::milling_tool &tool,
-                        heightmap &model) {
-  static std::string types[2]{"spherical", "flat"};
-
-  ImGui::Begin("Milling program");
-  ImGui::Text("Instruction Count: %d", program.instruction_count);
-  ImGui::Text("Tool Radius : %d", program.tool_radius);
-  ImGui::Text("Tool Type: %s",
-              types[program.tool_type == milling_tool_type::flat].c_str());
-  ImGui::Checkbox("Show paths", &program.paths_visible);
-
-  ImGui::DragFloat("Simulation Speed", &settings.speed);
-
-  if (ImGui::Button("Start")) {
-    if (settings.background_worker.has_value()) {
-      settings.should_exit = true;
-      settings.background_worker.value().join();
-      settings.background_worker.reset();
-    }
-
-    settings.quick_run = false;
-    fill_stamp(program.tool_type, program.tool_radius, tool.stamp,
-               model.pixels_per_unit);
-
-    settings.should_exit = false;
-    // 1. make sure that the tool starts at the right position
-    if (program.paths_geometry.vertices.size()) {
-      tool.placement.position = program.paths_geometry.vertices[0].pos;
-    }
-    // 2. run for all others
-    settings.background_worker =
-        std::thread(stamper{settings, program, tool, model});
-  }
-
-  if (ImGui::Button("Quick Milling")) {
-    if (settings.background_worker.has_value()) {
-      settings.should_exit = true;
-      settings.background_worker.value().join();
-      settings.background_worker.reset();
-    }
-
-    fill_stamp(program.tool_type, program.tool_radius, tool.stamp,
-               model.pixels_per_unit);
-
-    settings.should_exit = false;
-    settings.quick_run = true;
-    // 1. make sure that the tool starts at the right position
-    if (program.paths_geometry.vertices.size()) {
-      tool.placement.position = program.paths_geometry.vertices[0].pos;
-    }
-    // 2. run for all others
-    settings.background_worker =
-        std::thread(stamper{settings, program, tool, model});
-  }
-
-  if (ImGui::Button("Stop")) {
-    settings.should_exit = true;
-    if (program.instructions.size()) {
-      tool.placement.position = program.paths_geometry.vertices[0].pos;
-    }
-  }
-
-  if (settings.background_worker.has_value() && settings.is_finished) {
-    settings.background_worker->join();
-    settings.background_worker.reset();
-    settings.is_finished = false;
-
-    glfw_impl::fill_texture<float>(model.gpu_texture, model.cpu_texture.width,
-                                   model.cpu_texture.height,
-                                   model.cpu_texture.pixels.data());
-  } else if (!settings.quick_run && settings.background_worker.has_value()) {
-    static int counter = 0;
-    if (++counter >= 60) {
-      counter = 0;
-      glfw_impl::fill_texture<float>(model.gpu_texture, model.cpu_texture.width,
-                                     model.cpu_texture.height,
-                                     model.cpu_texture.pixels.data());
+          model.right_placements.push_back(curr);
+        }
+        model.current_settings.reset();
+      }
     }
   }
 
   ImGui::End();
 }
 
-void render(input_state &input, milling_scene &scene) {
+void render(input_state &input, interpolator_scene &scene) {
   render_performance_window();
   render_light_gui(scene.light);
-  render_tool_gui(scene.model, scene.tool, scene.program);
-  render_model_gui(scene.model);
+  render_simulation_gui(scene.model);
   render_popups();
-  render_main_menu(scene);
-  if (scene.program.has_value()) {
-    render_program_gui(scene.settings, scene.program.value(), scene.tool,
-                       scene.model);
-  }
 }
 
 void end_frame() {
@@ -432,80 +363,6 @@ void end_frame() {
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
     glfwMakeContextCurrent(backup_current_context);
-  }
-}
-
-static void show_menu_file(milling_scene &scene) {
-  if (ImGui::MenuItem("Reset")) {
-    scene.model.cpu_texture.reset(0);
-    glfw_impl::fill_texture<float>(
-        scene.model.gpu_texture, scene.model.cpu_texture.width,
-        scene.model.cpu_texture.height, scene.model.cpu_texture.pixels.data());
-  }
-
-  if (ImGui::MenuItem("Open", "Ctrl+O")) {
-    ImGuiFileDialog::Instance()->OpenDialog("OpenProgramChoice",
-                                            "Choose Program File", ".*", ".*");
-  }
-}
-
-void render_main_menu(milling_scene &scene) {
-  if (ImGui::BeginMainMenuBar()) {
-    if (ImGui::BeginMenu("File")) {
-      show_menu_file(scene);
-      ImGui::EndMenu();
-    }
-    ImGui::EndMainMenuBar();
-  }
-
-  if (ImGuiFileDialog::Instance()->Display("OpenProgramChoice")) {
-    if (ImGuiFileDialog::Instance()->IsOk()) {
-      std::string filepath = ImGuiFileDialog::Instance()->GetFilePathName();
-      // action
-      auto parsing_result = read_instructions(filepath);
-      if (parsing_result.error_message.has_value()) {
-        gui_info::file_error_message = parsing_result.error_message.value();
-        ImGui::OpenPopup("File Corrupted");
-      } else if (parsing_result.result_program.has_value()) {
-        if (scene.program.has_value() &&
-            scene.program.value().paths_api_renderable.program.has_value()) {
-          auto tmp_vao = scene.program.value().paths_api_renderable.vao.value();
-          auto tmp_vbo = scene.program.value().paths_api_renderable.vbo.value();
-          auto tmp_ebo = scene.program.value().paths_api_renderable.ebo.value();
-          GLuint tmp_program =
-              scene.program.value().paths_api_renderable.program.value();
-          scene.program.reset();
-
-          glDeleteProgram(tmp_program);
-          glDeleteBuffers(1, &tmp_vbo);
-          glDeleteBuffers(1, &tmp_ebo);
-          glDeleteVertexArrays(1, &tmp_vao);
-        }
-
-        scene.program = parsing_result.result_program.value();
-
-        generate_path_geometry(scene.program.value());
-
-        glfw_impl::add_program_to_renderable(
-            "resources/paths", scene.program.value().paths_api_renderable);
-
-        glfw_impl::fill_renderable(
-            scene.program.value().paths_geometry.vertices,
-            scene.program.value().paths_geometry.indices,
-            scene.program.value().paths_api_renderable);
-
-        scene.tool.radius = scene.program->tool_radius;
-        if (scene.program.value().instructions.size()) {
-          scene.tool.placement.position =
-              scene.program.value().paths_geometry.vertices[0].pos;
-        }
-        scene.tool.reset();
-        fill_stamp(scene.program.value().tool_type,
-                   scene.program.value().tool_radius, scene.tool.stamp,
-                   scene.model.pixels_per_unit);
-      }
-    }
-    ImGuiFileDialog::Instance()->Close();
   }
 }
 

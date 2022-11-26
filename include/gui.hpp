@@ -9,8 +9,7 @@
 
 #include <implot/implot.h>
 
-#include <milling_program.hpp>
-#include <milling_scene.hpp>
+#include <interpolator_scene.hpp>
 
 #include <glfw_impl.hpp>
 #include <inputs.hpp>
@@ -22,10 +21,10 @@ namespace gui {
 namespace chosen_api = glfw_impl;
 
 bool init(chosen_api::window_t &w);
-void render(input_state &input, milling_scene &scene);
+void render(input_state &input, interpolator_scene &scene);
 void start_frame();
 void render_popups();
-void render_main_menu(milling_scene &scene);
+void render_main_menu(interpolator_scene &scene);
 void end_frame();
 void update_viewport_info(std::function<void(void)> process_input);
 

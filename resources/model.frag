@@ -3,13 +3,13 @@
 out vec4 frag_color;
 in vec3 normal;
 in vec3 frag_pos;
+in vec3 color;
 
 uniform vec3 light_pos;
 uniform vec3 light_color;
 uniform vec3 cam_pos;
 
 void main() {
-    vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
     vec3 ambient = vec3(0.2, 0.2, 0.2);
     float spec_pow = 0.5f;
 
@@ -23,5 +23,5 @@ void main() {
     float spec = pow(max(dot(view_dir, ref_dir), 0.0), 32);
     vec3 specular = spec_pow * spec * vec3(light_color);
 
-    frag_color = vec4((ambient + diffuse + specular) * vec3(color), color.a);
+    frag_color = vec4((ambient + diffuse + specular) * color, 1.f);
 }

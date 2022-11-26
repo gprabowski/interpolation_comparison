@@ -3,8 +3,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <logger.hpp>
 #include <string>
+
+#include <logger.hpp>
 
 namespace pusn {
 namespace utils {

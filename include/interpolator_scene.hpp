@@ -1,15 +1,13 @@
 #pragma once
 
+#include <chrono>
 #include <vector>
 
 #include <glad/glad.h>
 
 #include <geometry.hpp>
 #include <glfw_impl.hpp>
-#include <heightmap.hpp>
 #include <mock_data.hpp>
-
-#include <milling_program.hpp>
 
 #include <atomic>
 
@@ -21,11 +19,20 @@ namespace internal {
 //    * API object reference
 
 struct simulation_settings {
-  float speed{0.f};
-  std::optional<std::thread> background_worker;
-  std::atomic<bool> should_exit{false};
-  std::atomic<bool> is_finished{false};
-  std::atomic<bool> quick_run{false};
+  float length{5.f};
+  decltype(std::chrono::system_clock::now()) start_time;
+  math::vec3 position_start{0.f, 0.f, 0.f};
+  math::vec3 position_end{500.f, 0.f, 0.f};
+
+  glm::quat quat_rotation_start{1.f, 0.f, 1.f, 1.f};
+  glm::quat quat_rotation_end{1.f, 0.f, 1.f, 1.f};
+
+  glm::vec3 euler_rotation_start{0.f, 0.f, 0.f};
+  glm::vec3 euler_rotation_end{2 * glm::pi<float>(), 0.f, 0.f};
+
+  bool slerp{true};
+  bool animation{true};
+  int frames{10};
 };
 
 struct light {
@@ -43,23 +50,21 @@ struct scene_grid {
   glfw_impl::renderable api_renderable;
 };
 
-struct tool_stamp {
-  int width{1}, height{1};
-  std::vector<float> stamp_values;
-};
+struct model {
+  float height{70.f};
+  float radius{5.f};
 
-struct milling_tool {
-  float height{700.f};
-  float radius{16.f};
+  std::optional<simulation_settings> current_settings;
+  simulation_settings next_settings;
 
-  float cutting_length{radius * 2};
+  std::vector<scene_object_info> left_placements{
+      scene_object_info{{0.f, 100.f, 0.f}, {0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}}};
 
-  scene_object_info placement{
-      {0.f, 100.f, 0.f}, {90.f, 0.f, 0.f}, {1.f, 1.f, 1.f}};
+  std::vector<scene_object_info> right_placements{
+      scene_object_info{{0.f, -100.f, 0.f}, {0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}}};
+
   api_agnostic_geometry geometry;
   glfw_impl::renderable api_renderable;
-
-  tool_stamp stamp;
 
   inline void reset() {
     geometry.vertices.clear();
@@ -73,16 +78,14 @@ struct milling_tool {
 
 } // namespace internal
 
-struct milling_scene {
-  heightmap model;
+struct interpolator_scene {
   internal::simulation_settings settings;
-  internal::milling_tool tool;
+  internal::model model;
   internal::scene_grid grid;
   internal::light light;
-  std::optional<milling_program> program;
 
   bool init();
-  void render(input_state &input);
+  void render(input_state &input, bool left = true);
   void set_light_uniforms(input_state &input, glfw_impl::renderable &r);
 };
 

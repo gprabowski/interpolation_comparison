@@ -18,7 +18,7 @@ bool should_close(window_t &w);
 void clear_color_and_depth(math::vec4 color, float depth);
 void swap_buffers(window_t &w);
 void poll_events(window_t &w);
-void fill_renderable(std::vector<pos_norm_tex> &vertices,
+void fill_renderable(std::vector<pos_norm_col> &vertices,
                      std::vector<unsigned int> &indices, renderable &out);
 void add_program_to_renderable(const std::string &program_name,
                                renderable &out);

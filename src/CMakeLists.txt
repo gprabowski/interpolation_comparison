@@ -1,16 +1,12 @@
 set(MILLING_SIMULATOR_SOURCES
   main.cpp
   logger.cpp
-  milling_simulator.cpp
+  interpolator.cpp
   glfw_impl.cpp
-  milling_scene.cpp
+  interpolator_scene.cpp
   inputs.cpp
   gui.cpp
   utils.cpp
-  milling_program.cpp
-  heightmap.cpp
-  stamping.cpp
-  stb_image.cpp
 )
 
 add_executable(milling)

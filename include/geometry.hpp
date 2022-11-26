@@ -6,10 +6,10 @@
 
 namespace pusn {
 
-struct pos_norm_tex {
+struct pos_norm_col {
   math::vec3 pos;
   math::vec3 normal;
-  math::vec2 tex;
+  math::vec3 color;
 };
 
 struct scene_object_info {
@@ -19,7 +19,7 @@ struct scene_object_info {
 };
 
 struct api_agnostic_geometry {
-  std::vector<pos_norm_tex> vertices;
+  std::vector<pos_norm_col> vertices;
   std::vector<unsigned int> indices;
 
   math::vec4 color{1.f, 0.f, 0.f, 1.f};

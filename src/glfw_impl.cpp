@@ -16,10 +16,13 @@ unsigned int glfw_impl::last_frame_info::height = 0;
 float glfw_impl::last_frame_info::last_frame_time = 0.f;
 uint64_t glfw_impl::last_frame_info::begin_time = 0.f;
 
-math::vec2 glfw_impl::last_frame_info::viewport_area = {};
-math::vec2 glfw_impl::last_frame_info::viewport_pos = {};
+math::vec2 glfw_impl::last_frame_info::left_viewport_area = {};
+math::vec2 glfw_impl::last_frame_info::left_viewport_pos = {};
 
-void glfw_impl::fill_renderable(std::vector<pos_norm_tex> &vertices,
+math::vec2 glfw_impl::last_frame_info::right_viewport_area = {};
+math::vec2 glfw_impl::last_frame_info::right_viewport_pos = {};
+
+void glfw_impl::fill_renderable(std::vector<pos_norm_col> &vertices,
                                 std::vector<unsigned int> &indices,
                                 renderable &out) {
   if (!out.vbo.has_value()) {
@@ -28,7 +31,7 @@ void glfw_impl::fill_renderable(std::vector<pos_norm_tex> &vertices,
     out.vbo = tmp;
   }
   // allocation or reallocation
-  glNamedBufferData(out.vbo.value(), sizeof(pos_norm_tex) * vertices.size(),
+  glNamedBufferData(out.vbo.value(), sizeof(pos_norm_col) * vertices.size(),
                     vertices.data(), GL_STATIC_DRAW);
 
   if (!out.ebo.has_value()) {
@@ -50,6 +53,7 @@ void glfw_impl::fill_renderable(std::vector<pos_norm_tex> &vertices,
   // prepare array indexing among attributes
   glVertexArrayVertexBuffer(out.vao.value(), 0, out.vbo.value(), 0,
                             sizeof(vertices[0]));
+
   glVertexArrayElementBuffer(out.vao.value(), out.ebo.value());
 
   glEnableVertexArrayAttrib(out.vao.value(), 0);
@@ -59,7 +63,7 @@ void glfw_impl::fill_renderable(std::vector<pos_norm_tex> &vertices,
   glVertexArrayAttribFormat(out.vao.value(), 0, 3, GL_FLOAT, GL_FALSE, 0);
   glVertexArrayAttribFormat(out.vao.value(), 1, 3, GL_FLOAT, GL_FALSE,
                             3 * sizeof(float));
-  glVertexArrayAttribFormat(out.vao.value(), 2, 2, GL_FLOAT, GL_FALSE,
+  glVertexArrayAttribFormat(out.vao.value(), 2, 3, GL_FLOAT, GL_FALSE,
                             6 * sizeof(float));
 
   glVertexArrayAttribBinding(out.vao.value(), 0, 0);

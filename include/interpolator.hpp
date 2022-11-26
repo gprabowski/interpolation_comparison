@@ -1,13 +1,13 @@
 #pragma once
 
 #include <inputs.hpp>
-#include <milling_scene.hpp>
+#include <interpolator_scene.hpp>
 
 namespace pusn {
 
 namespace chosen_api = glfw_impl;
 
-struct milling_simulator {
+struct interpolator {
   // graphical API object
   chosen_api::window_t window;
   chosen_api::frambuffer viewport;
@@ -15,7 +15,7 @@ struct milling_simulator {
   // input state object
   input_state input;
   // scene object
-  milling_scene scene;
+  interpolator_scene scene;
 
   // functions
   // init all systems
