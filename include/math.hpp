@@ -60,4 +60,40 @@ inline mat4 get_model_matrix(const vec3 &position, const vec3 &scale,
   return trans_m * scale_m * rot_m;
 }
 
+inline glm::quat slerp(glm::quat const &x, glm::quat const &y, float t) {
+  glm::quat z = y;
+
+  float cosTheta = glm::dot(x, y);
+
+  if (cosTheta < 0.f) {
+    z = -y;
+    cosTheta = -cosTheta;
+  }
+
+  if (cosTheta > 1.f - std::numeric_limits<float>::epsilon()) {
+    return glm::normalize(
+        glm::quat(glm::mix(x.w, z.w, t), glm::mix(x.x, z.x, t),
+                  glm::mix(x.y, z.y, t), glm::mix(x.z, z.z, t)));
+  } else {
+    float angle = acos(cosTheta);
+    return glm::normalize((sinf((1.f - t) * angle) * x + sinf(t * angle) * z) /
+                          sinf(angle));
+  }
+}
+
+inline glm::quat lerp(glm::quat const &x, glm::quat const &y, float t) {
+  glm::quat z = y;
+
+  float cosTheta = glm::dot(x, y);
+
+  if (cosTheta < 0.f) {
+    z = -y;
+    cosTheta = -cosTheta;
+  }
+
+  return glm::normalize(glm::quat(glm::mix(x.w, z.w, t), glm::mix(x.x, z.x, t),
+                                  glm::mix(x.y, z.y, t),
+                                  glm::mix(x.z, z.z, t)));
+}
+
 } // namespace math

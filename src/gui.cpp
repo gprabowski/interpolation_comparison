@@ -296,6 +296,11 @@ void render_simulation_gui(internal::model &model) {
           glm::normalize(model.next_settings.quat_rotation_start);
       model.next_settings.quat_rotation_end =
           glm::normalize(model.next_settings.quat_rotation_end);
+      const auto omega = glm::dot(model.next_settings.quat_rotation_start,
+                                  model.next_settings.quat_rotation_end);
+      if (omega < 0) {
+        model.next_settings.quat_rotation_end *= -1;
+      }
 
       model.current_settings = model.next_settings;
 
@@ -314,14 +319,14 @@ void render_simulation_gui(internal::model &model) {
 
           if (model.current_settings.value().slerp) {
             curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(
-                glm::slerp(model.current_settings.value().quat_rotation_start,
-                           model.current_settings.value().quat_rotation_end,
-                           progress))));
+                math::slerp(model.current_settings.value().quat_rotation_start,
+                            model.current_settings.value().quat_rotation_end,
+                            progress))));
           } else {
             curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(
-                glm::lerp(model.current_settings.value().quat_rotation_start,
-                          model.current_settings.value().quat_rotation_end,
-                          progress))));
+                math::lerp(model.current_settings.value().quat_rotation_start,
+                           model.current_settings.value().quat_rotation_end,
+                           progress))));
           }
 
           model.left_placements.push_back(curr);
