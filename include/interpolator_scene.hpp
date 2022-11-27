@@ -24,8 +24,8 @@ struct simulation_settings {
   math::vec3 position_start{0.f, 0.f, 0.f};
   math::vec3 position_end{500.f, 0.f, 0.f};
 
-  glm::quat quat_rotation_start{1.f, 0.f, 1.f, 1.f};
-  glm::quat quat_rotation_end{1.f, 0.f, 1.f, 1.f};
+  glm::quat quat_rotation_start{1.f, 0.f, 0.f, 0.f};
+  glm::quat quat_rotation_end{1.f, 0.f, 0.f, 0.f};
 
   glm::vec3 euler_rotation_start{0.f, 0.f, 0.f};
   glm::vec3 euler_rotation_end{2 * glm::pi<float>(), 0.f, 0.f};

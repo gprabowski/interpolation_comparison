@@ -332,10 +332,48 @@ void render_simulation_gui(internal::model &model) {
           model.left_placements.push_back(curr);
 
           // right (euler angles)
-          curr.rotation = glm::degrees(glm::mix(
-              model.current_settings.value().euler_rotation_start,
-              model.current_settings.value().euler_rotation_end, progress));
+          // 1. check if reversed will be needed
+          auto eu_st = model.current_settings.value().euler_rotation_start;
+          auto eu_en = model.current_settings.value().euler_rotation_end;
 
+          const float pi = glm::pi<float>();
+          const float tau = 2 * glm::pi<float>();
+          const auto tmp_st = (eu_st / tau);
+          const auto tmp_en = (eu_en / tau);
+
+          eu_st -= glm::vec3{static_cast<int>(tmp_st.x) * tau,
+                             static_cast<int>(tmp_st.y) * tau,
+                             static_cast<int>(tmp_st.z) * tau};
+
+          eu_en -= glm::vec3{static_cast<int>(tmp_en.x) * tau,
+                             static_cast<int>(tmp_en.y) * tau,
+                             static_cast<int>(tmp_en.z) * tau};
+
+          const auto dist = eu_en - eu_st;
+
+          if (std::abs(dist.x) > pi) {
+            if (eu_en.x > eu_st.x) {
+              eu_st.x += tau;
+            } else {
+              eu_en.x += tau;
+            }
+          }
+          if (std::abs(dist.y) > pi) {
+            if (eu_en.y > eu_st.y) {
+              eu_st.y += tau;
+            } else {
+              eu_en.y += tau;
+            }
+          }
+          if (std::abs(dist.z) > pi) {
+            if (eu_en.z > eu_st.z) {
+              eu_st.z += tau;
+            } else {
+              eu_en.z += tau;
+            }
+          }
+
+          curr.rotation = glm::degrees(glm::mix(eu_st, eu_en, progress));
           model.right_placements.push_back(curr);
         }
         model.current_settings.reset();
