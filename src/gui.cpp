@@ -341,10 +341,31 @@ void render_simulation_gui(internal::model &model) {
   ImGui::End();
 }
 
+void render_converter() {
+  static glm::vec3 euler{0.f, 0.f, 0.f};
+  static glm::quat quat{1.f, 0.f, 0.f, 0.f};
+
+  ImGui::Begin("Rotation Converter");
+
+  if (ImGui::DragFloat3("Euler", glm::value_ptr(euler), -2 * glm::pi<float>(),
+                        2 * glm::pi<float>())) {
+    quat = glm::quat(euler);
+  }
+
+  if (ImGui::DragFloat4("Quaternion", glm::value_ptr(quat),
+                        -2 * glm::pi<float>(), 2 * glm::pi<float>())) {
+    quat = glm::normalize(quat);
+    euler = eulerAngles(quat);
+  }
+
+  ImGui::End();
+}
+
 void render(input_state &input, interpolator_scene &scene) {
   render_performance_window();
   render_light_gui(scene.light);
   render_simulation_gui(scene.model);
+  render_converter();
   render_popups();
 }
 

@@ -3,8 +3,11 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
+#define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_FORCE_RADIANS
 #include <glm/gtc/type_ptr.hpp>
+#define GLM_FORCE_RADIANS
 #include <glm/gtx/quaternion.hpp>
 
 namespace math {
