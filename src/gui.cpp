@@ -338,16 +338,12 @@ void render_simulation_gui(internal::model &model) {
 
           const float pi = glm::pi<float>();
           const float tau = 2 * glm::pi<float>();
-          const auto tmp_st = (eu_st / tau);
-          const auto tmp_en = (eu_en / tau);
 
-          eu_st -= glm::vec3{static_cast<int>(tmp_st.x) * tau,
-                             static_cast<int>(tmp_st.y) * tau,
-                             static_cast<int>(tmp_st.z) * tau};
+          eu_st = {std::fmod(eu_st.x, tau), std::fmod(eu_st.y, tau),
+                   std::fmod(eu_st.z, tau)};
 
-          eu_en -= glm::vec3{static_cast<int>(tmp_en.x) * tau,
-                             static_cast<int>(tmp_en.y) * tau,
-                             static_cast<int>(tmp_en.z) * tau};
+          eu_en = {std::fmod(eu_en.x, tau), std::fmod(eu_en.y, tau),
+                   std::fmod(eu_en.z, tau)};
 
           const auto dist = eu_en - eu_st;
 

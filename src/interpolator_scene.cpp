@@ -82,26 +82,64 @@ void interpolator_scene::render(input_state &input, bool left) {
     } else {
       model.left_placements.clear();
       model.right_placements.clear();
-
+      // left (quaternion)
       scene_object_info curr;
       curr.position =
-          glm::mix(model.current_settings.value().position_start,
-                   model.current_settings.value().position_end, progress);
+          (1 - progress) * model.current_settings.value().position_start +
+          progress * model.current_settings.value().position_end;
+
       if (model.current_settings.value().slerp) {
-        curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(glm::slerp(
-            model.current_settings.value().quat_rotation_start,
-            model.current_settings.value().quat_rotation_end, progress))));
+        curr.rotation =
+            glm::degrees(glm::eulerAngles(glm::normalize(math::slerp(
+                model.current_settings.value().quat_rotation_start,
+                model.current_settings.value().quat_rotation_end, progress))));
       } else {
-        curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(glm::lerp(
+        curr.rotation = glm::degrees(glm::eulerAngles(glm::normalize(math::lerp(
             model.current_settings.value().quat_rotation_start,
             model.current_settings.value().quat_rotation_end, progress))));
       }
+
       model.left_placements.push_back(curr);
 
-      curr.rotation = glm::degrees(glm::mix(
-          model.current_settings.value().euler_rotation_start,
-          model.current_settings.value().euler_rotation_end, progress));
+      // right (euler angles)
+      // 1. check if reversed will be needed
+      auto eu_st = model.current_settings.value().euler_rotation_start;
+      auto eu_en = model.current_settings.value().euler_rotation_end;
 
+      const float pi = glm::pi<float>();
+      const float tau = 2 * glm::pi<float>();
+
+      eu_st = {std::fmod(eu_st.x, tau), std::fmod(eu_st.y, tau),
+               std::fmod(eu_st.z, tau)};
+
+      eu_en = {std::fmod(eu_en.x, tau), std::fmod(eu_en.y, tau),
+               std::fmod(eu_en.z, tau)};
+
+      const auto dist = eu_en - eu_st;
+
+      if (std::abs(dist.x) > pi) {
+        if (eu_en.x > eu_st.x) {
+          eu_st.x += tau;
+        } else {
+          eu_en.x += tau;
+        }
+      }
+      if (std::abs(dist.y) > pi) {
+        if (eu_en.y > eu_st.y) {
+          eu_st.y += tau;
+        } else {
+          eu_en.y += tau;
+        }
+      }
+      if (std::abs(dist.z) > pi) {
+        if (eu_en.z > eu_st.z) {
+          eu_st.z += tau;
+        } else {
+          eu_en.z += tau;
+        }
+      }
+
+      curr.rotation = glm::degrees(glm::mix(eu_st, eu_en, progress));
       model.right_placements.push_back(curr);
     }
   }
