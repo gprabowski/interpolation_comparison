@@ -185,7 +185,7 @@ void start_frame() {
 
 void update_viewport_info(std::function<void(void)> process_input) {
   // update viewport static info
-  ImGui::Begin("Euler Angles Interpolation");
+  ImGui::Begin("Quaternion Interpolation");
 
   auto min = ImGui::GetWindowContentRegionMin();
   auto max = ImGui::GetWindowContentRegionMax();
@@ -210,7 +210,7 @@ void update_viewport_info(std::function<void(void)> process_input) {
 
   ImGui::End();
 
-  ImGui::Begin("Quaternion Interpolation");
+  ImGui::Begin("Euler Angles Interpolation");
 
   min = ImGui::GetWindowContentRegionMin();
   max = ImGui::GetWindowContentRegionMax();
@@ -265,21 +265,34 @@ void render_simulation_gui(internal::model &model) {
                     glm::value_ptr(model.next_settings.position_end), -1000,
                     1000);
 
-  ImGui::DragFloat4("Quaternion Start",
-                    glm::value_ptr(model.next_settings.quat_rotation_start),
-                    -100.f, 100.f);
+  if (ImGui::DragFloat4("Quaternion Start",
+                        glm::value_ptr(model.next_settings.quat_rotation_start),
+                        -100.f, 100.f)) {
+    model.next_settings.euler_rotation_start =
+        glm::eulerAngles(model.next_settings.quat_rotation_start);
+  }
 
-  ImGui::DragFloat4("Quaternion End",
-                    glm::value_ptr(model.next_settings.quat_rotation_end),
-                    -100.f, 100.f);
+  if (ImGui::DragFloat4("Quaternion End",
+                        glm::value_ptr(model.next_settings.quat_rotation_end),
+                        -100.f, 100.f)) {
+    model.next_settings.euler_rotation_end =
+        glm::eulerAngles(model.next_settings.quat_rotation_end);
+  }
 
-  ImGui::DragFloat3("Euler Angles Start",
-                    glm::value_ptr(model.next_settings.euler_rotation_start),
-                    -2 * glm::pi<float>(), 2 * glm::pi<float>());
+  if (ImGui::DragFloat3(
+          "Euler Angles Start",
+          glm::value_ptr(model.next_settings.euler_rotation_start),
+          -2 * glm::pi<float>(), 2 * glm::pi<float>())) {
+    model.next_settings.quat_rotation_start =
+        glm::quat(model.next_settings.euler_rotation_start);
+  }
 
-  ImGui::DragFloat3("Euler Angles End",
-                    glm::value_ptr(model.next_settings.euler_rotation_end),
-                    -2 * glm::pi<float>(), 2 * glm::pi<float>());
+  if (ImGui::DragFloat3("Euler Angles End",
+                        glm::value_ptr(model.next_settings.euler_rotation_end),
+                        -2 * glm::pi<float>(), 2 * glm::pi<float>())) {
+    model.next_settings.quat_rotation_end =
+        glm::quat(model.next_settings.euler_rotation_end);
+  }
 
   ImGui::Checkbox("SLERP", &model.next_settings.slerp);
   ImGui::Checkbox("Animate", &model.next_settings.animation);
